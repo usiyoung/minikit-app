@@ -1,0 +1,9 @@
+# Netlify 빌드 설정을 위한 파일
+
+[build]
+  command = "next build"
+  publish = ".next"
+
+[[plugins]]
+  # Next.js 런타임 플러그인을 명시적으로 지정
+  package = "@netlify/plugin-nextjs"
