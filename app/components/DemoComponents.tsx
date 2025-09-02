@@ -16,7 +16,7 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
-import { baseSepolia } from "wagmi/chains";
+import { base } from "wagmi/chains";
 
 type ButtonProps = {
   children: ReactNode;
@@ -435,7 +435,7 @@ function TransactionCard() {
           {address ? (
             <Transaction
               calls={calls}
-              chainId={baseSepolia.id}
+              chainId={base.id}
               onSuccess={handleSuccess}
               onError={(error: TransactionError) =>
                 console.error("Transaction failed:", error)
