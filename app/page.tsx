@@ -33,7 +33,9 @@ export default function App() {
   const openUrl = useOpenUrl();
 
   useEffect(() => {
+    console.log("isFrameReady", isFrameReady, context);
     if (!isFrameReady) {
+    
       setFrameReady();
     }
   }, [setFrameReady, isFrameReady]);
@@ -92,7 +94,7 @@ export default function App() {
               </Wallet>
             </div>
           </div>
-          <div>{saveFrameButton}</div>
+          <div>{saveFrameButton}111</div>
         </header>
 
         <main className="flex-1">
