@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import {
   Transaction,
   TransactionButton,
@@ -17,6 +17,148 @@ import {
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
 import { baseSepolia } from "wagmi/chains";
+
+// 월렛 타입 감지 훅
+function useWalletType() {
+  const { connector } = useAccount();
+  
+  const isBaseWallet = useMemo(() => {
+    if (!connector) return false;
+    return connector.name?.toLowerCase().includes('base') || 
+           connector.id?.toLowerCase().includes('base');
+  }, [connector]);
+  
+  const isChromeWallet = useMemo(() => {
+    if (!connector) return false;
+    return connector.name?.toLowerCase().includes('chrome') || 
+           connector.id?.toLowerCase().includes('chrome') ||
+           connector.name?.toLowerCase().includes('metamask') ||
+           connector.id?.toLowerCase().includes('metamask');
+  }, [connector]);
+  
+  return { isBaseWallet, isChromeWallet };
+}
+
+// EOA 트랜잭션 컴포넌트 (베이스 월렛용)
+function EOATransaction({ address, onSuccess }: { address: string; onSuccess: (hash: string) => void }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { data: hash, sendTransaction, isPending } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const handleSendTransaction = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      await sendTransaction({
+        to: address as `0x${string}`,
+        value: BigInt(100000000000), // 0.0001 ETH
+        data: "0x" as `0x${string}`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Transaction failed');
+      setIsLoading(false);
+    }
+  };
+
+  // 트랜잭션 성공 시 콜백 호출
+  useMemo(() => {
+    if (isSuccess && hash) {
+      onSuccess(hash);
+      setIsLoading(false);
+    }
+  }, [isSuccess, hash, onSuccess]);
+
+  return (
+    <div className="space-y-4">
+      <Button
+        onClick={handleSendTransaction}
+        disabled={isPending || isConfirming || isLoading}
+        className="w-full"
+      >
+        {isPending || isConfirming || isLoading ? 'Processing...' : 'Send EOA Transaction'}
+      </Button>
+      
+      {error && (
+        <p className="text-red-400 text-sm text-center">
+          Error: {error}
+        </p>
+      )}
+      
+      {hash && (
+        <p className="text-green-400 text-sm text-center">
+          Transaction Hash: {hash}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// CA 트랜잭션 컴포넌트 (크롬 월렛용 - OnchainKit)
+function CATransaction({ address, onSuccess }: { address: string; onSuccess: (hash: string) => void }) {
+  const [error, setError] = useState<TransactionError | null>(null);
+
+  // Example transaction call - sending 0 ETH to self
+  const calls = useMemo(() => address
+    ? [
+        {
+          to: address as `0x${string}`,
+          data: "0x" as `0x${string}`,
+          value: BigInt(100000000000),
+        },
+      ]
+    : [], [address]);
+
+  const sendNotification = useNotification();
+
+  const handleSuccess = useCallback(async (response: TransactionResponse) => {
+    const transactionHash = response.transactionReceipts[0].transactionHash;
+    console.log(`Transaction successful: ${transactionHash}`);
+    
+    await sendNotification({
+      title: "Congratulations!",
+      body: `You sent your transaction, ${transactionHash}!`,
+    });
+    
+    onSuccess(transactionHash);
+  }, [sendNotification, onSuccess]);
+
+  return (
+    <div className="space-y-4">
+      <Transaction
+        calls={calls}
+        chainId={baseSepolia.id}
+        onSuccess={handleSuccess}
+        onError={(error: TransactionError) => {
+          console.error("Transaction failed:", error.code, error.message, error.error);
+          setError(error);
+        }}
+      >
+        <TransactionButton className="text-white text-md w-full" />
+        <TransactionStatus>
+          <TransactionStatusAction />
+          <TransactionStatusLabel />
+        </TransactionStatus>
+        
+        <TransactionToast className="mb-4">
+          <TransactionToastIcon />
+          <TransactionToastLabel />
+          <TransactionToastAction />
+        </TransactionToast>
+      </Transaction>
+      
+      {error && (
+        <p className="text-red-400 text-sm text-center">
+          Error: {error.code} - {error.message}
+        </p>
+      )}
+    </div>
+  );
+}
 
 type ButtonProps = {
   children: ReactNode;
@@ -390,85 +532,78 @@ function TodoList() {
 
 function TransactionCard() {
   const { address } = useAccount();
-  const [error, setError] = useState<TransactionError | null>(null);
-
-  // Example transaction call - sending 0 ETH to self
-  const calls = useMemo(() => address
-    ? [
-        {
-          to: address,
-          data: "0x" as `0x${string}`,
-          value: BigInt(100000000000),
-        },
-      ]
-    : [], [address]);
-
+  const { isBaseWallet, isChromeWallet } = useWalletType();
   const sendNotification = useNotification();
 
-  const handleSuccess = useCallback(async (response: TransactionResponse) => {
-    const transactionHash = response.transactionReceipts[0].transactionHash;
-
+  const handleTransactionSuccess = useCallback(async (transactionHash: string) => {
     console.log(`Transaction successful: ${transactionHash}`);
-
+    
     await sendNotification({
       title: "Congratulations!",
-      body: `You sent your a transaction, ${transactionHash}!`,
+      body: `You sent your transaction, ${transactionHash}!`,
     });
   }, [sendNotification]);
 
+  const getWalletTypeInfo = () => {
+    if (isBaseWallet) {
+      return {
+        title: "Base Wallet (EOA Transaction)",
+        description: "Using wagmi's useSendTransaction for direct EOA transactions",
+        type: "EOA"
+      };
+    } else if (isChromeWallet) {
+      return {
+        title: "Chrome Wallet (CA Transaction)",
+        description: "Using OnchainKit's sponsored transaction system",
+        type: "CA"
+      };
+    } else {
+      return {
+        title: "Unknown Wallet",
+        description: "Wallet type not detected, using default CA transaction",
+        type: "CA"
+      };
+    }
+  };
+
+  const walletInfo = getWalletTypeInfo();
+
   return (
-    <Card title="Make Your First Transaction">
+    <Card title={walletInfo.title}>
       <div className="space-y-4">
         <p className="text-[var(--app-foreground-muted)] mb-4">
-          Experience the power of seamless sponsored transactions with{" "}
-          <a
-            href="https://onchainkit.xyz"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#0052FF] hover:underline"
-          >
-            OnchainKit
-          </a>
-          .
+          {walletInfo.description}
         </p>
 
         <div className="flex flex-col items-center">
           {address ? (
-            <Transaction
-              calls={calls}
-              chainId={baseSepolia.id}
-              onSuccess={handleSuccess}
-              onError={(error: TransactionError) =>{
-                console.error("Transaction failed:", error.code, error.message, error.error);
-                setError(error)
-              }
-              }
-            >
-              <TransactionButton className="text-white text-md" />
-              <TransactionStatus>
-                <TransactionStatusAction />
-                <TransactionStatusLabel />
-              </TransactionStatus>
+            <>
+              {isBaseWallet ? (
+                <EOATransaction 
+                  address={address} 
+                  onSuccess={handleTransactionSuccess}
+                />
+              ) : (
+                <CATransaction 
+                  address={address} 
+                  onSuccess={handleTransactionSuccess}
+                />
+              )}
               
-              <TransactionToast className="mb-4">
-                <TransactionToastIcon />
-                <TransactionToastLabel />
-                <TransactionToastAction />
-              </TransactionToast>
-            </Transaction>
+              <div className="mt-4 p-3 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
+                <p className="text-sm text-[var(--app-foreground-muted)]">
+                  <strong>Wallet Type:</strong> {walletInfo.type}
+                </p>
+                <p className="text-sm text-[var(--app-foreground-muted)]">
+                  <strong>Address:</strong> {address}
+                </p>
+              </div>
+            </>
           ) : (
             <p className="text-yellow-400 text-sm text-center mt-2">
               Connect your wallet to send a transaction
             </p>
           )}
-
-            {error && (
-              <p className="text-red-400 text-sm text-center mt-2">
-                {error.code}
-                {error.message}
-                {error.error}
-              </p>
-            )}
         </div>
       </div>
     </Card>
