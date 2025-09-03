@@ -390,6 +390,7 @@ function TodoList() {
 
 function TransactionCard() {
   const { address } = useAccount();
+  const [error, setError] = useState<TransactionError | null>(null);
 
   // Example transaction call - sending 0 ETH to self
   const calls = useMemo(() => address
@@ -437,8 +438,10 @@ function TransactionCard() {
               calls={calls}
               chainId={baseSepolia.id}
               onSuccess={handleSuccess}
-              onError={(error: TransactionError) =>
-                console.error("Transaction failed:", error.code, error.message, error.error)
+              onError={(error: TransactionError) =>{
+                console.error("Transaction failed:", error.code, error.message, error.error);
+                setError(error)
+              }
               }
             >
               <TransactionButton className="text-white text-md" />
@@ -446,6 +449,7 @@ function TransactionCard() {
                 <TransactionStatusAction />
                 <TransactionStatusLabel />
               </TransactionStatus>
+              
               <TransactionToast className="mb-4">
                 <TransactionToastIcon />
                 <TransactionToastLabel />
@@ -457,6 +461,14 @@ function TransactionCard() {
               Connect your wallet to send a transaction
             </p>
           )}
+
+            {error && (
+              <p className="text-red-400 text-sm text-center mt-2">
+                {error.code}
+                {error.message}
+                {error.error}
+              </p>
+            )}
         </div>
       </div>
     </Card>
