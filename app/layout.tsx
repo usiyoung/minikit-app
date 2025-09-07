@@ -16,18 +16,18 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "Aurora Pay leads the evolution of digital payments. We provide a simplified and frictionless solution for stablecoin-to-fiat conversion.",
     
     icons: {
-      icon: '/aurora_pay_icon.png',
-      shortcut: '/aurora_pay_icon.png',
-      apple: '/aurora_pay_icon.png',
+      icon: '/aurora_pay.png',
+      shortcut: '/aurora_pay.png',
+      apple: '/aurora_pay.png',
       other: {
         rel: 'android-chrome-icon',
-        url: '/aurora_pay_icon.png',
+        url: '/aurora_pay.png',
       },
     },
     // other: {
     //   "fc:frame": JSON.stringify({
     //     version: "next",
-    //     imageUrl: '/aurora_pay_icon.png',
+    //     imageUrl: '/aurora_pay.png',
     //     button: {
     //       title: `Launch ${process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME}`,
     //       action: {
