@@ -34,9 +34,7 @@ export default function App() {
 
   useEffect(() => {
     // 개발 환경이고, localhost가 아닐 때만 Eruda를 로드
-    if (process.env.NODE_ENV === 'development' && !window.location.hostname.includes('localhost')) {
       import('eruda').then((eruda) => eruda.default.init());
-    }
   }, []);
 
   useEffect(() => {
