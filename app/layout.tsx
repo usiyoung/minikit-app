@@ -10,7 +10,7 @@ export const viewport: Viewport = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL;
+  // const URL = process.env.NEXT_PUBLIC_URL;
   return {
     title: "Aurora Pay", 
     description: "Aurora Pay leads the evolution of digital payments. We provide a simplified and frictionless solution for stablecoin-to-fiat conversion.",
