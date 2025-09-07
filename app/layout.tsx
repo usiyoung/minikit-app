@@ -42,9 +42,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-background">
-        <Providers>{children}</Providers>
-      </body>
-    </html>
+    <head>
+      <title>Aurora Pay</title>
+      <meta
+        name="description"
+        content="Aurora Pay leads the evolution of digital payments. We provide a simplified and frictionless solution for stablecoin-to-fiat conversion."
+      />
+      <link rel="icon" href="/aurora_pay_icon.png" sizes="any" />
+
+      <link rel="icon" href="/aurora_pay_icon.png" type="image/svg+xml" />
+
+      <link rel="apple-touch-icon" href="/aurora_pay_icon.png" />
+    </head>
+    <body className="bg-background">
+      <Providers>{children}</Providers>
+    </body>
+  </html>
   );
 }
