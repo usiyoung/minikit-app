@@ -4,6 +4,7 @@ function withValidProperties(
   return Object.fromEntries(
     Object.entries(properties).filter(([key, value]) => {
       if (Array.isArray(value)) {
+        console.log('key', key);
         return value.length > 0;
       }
       return !!value;
